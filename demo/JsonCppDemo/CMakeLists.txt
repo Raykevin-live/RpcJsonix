@@ -1,0 +1,2 @@
+add_executable(jsoncpp_main JsoncppMain.cpp)
+target_link_libraries(jsoncpp_main PRIVATE jsoncpp)
