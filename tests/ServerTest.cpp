@@ -1,6 +1,6 @@
-#include "../source/Message.hpp"
-#include "../source/Net.hpp"
-#include "../source/Dispatcher.hpp"
+#include "../source/common/Message.hpp"
+#include "../source/common/Net.hpp"
+#include "../source/common/Dispatcher.hpp"
 
 using namespace base;
 

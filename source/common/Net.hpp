@@ -101,7 +101,6 @@ public:
         auto id_len = htonl(id.size());
         auto h_total_len = mtypeFieldsLength + idLenFieldsLength + id.size() + body.size();
         auto nl_total_len = htonl(h_total_len);
-        LOG_DEBUG("发送消息总长度: {}", h_total_len);
         std::string result;
         result.reserve(h_total_len);
         result.append((char*)&nl_total_len, lenFieldsLength);

@@ -1,4 +1,4 @@
-#include "../source/Message.hpp"
+#include "../source/common/Message.hpp"
 
 void TestRpcRequest(){
     auto rpc = base::MessageFactory::Create<base::RpcRequest>();
