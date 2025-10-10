@@ -37,6 +37,7 @@ enum class ResCode{
     RCODE_NOT_FOUND_SERVICE, ///< 未找到服务
     RCODE_INVALID_OPTYPE, ///< 无效请求类型
     RCODE_NOT_FOUND_TOPIC, ///< 未找到主题
+    RCODE_INTERNAL_ERROR, ///< 内部错误
 };
 static std::string_view GetErrorReason(ResCode code)
 {
@@ -49,6 +50,7 @@ static std::string_view GetErrorReason(ResCode code)
         {ResCode::RCODE_NOT_FOUND_SERVICE, "Not find service"},
         {ResCode::RCODE_INVALID_OPTYPE, "Invaild opertor type"},
         {ResCode::RCODE_NOT_FOUND_TOPIC, "Not found right topic"},
+        {ResCode::RCODE_INTERNAL_ERROR, "internal error"},
     };
 
     if(err_map.contains(code)) return "Invaild error rcode";
