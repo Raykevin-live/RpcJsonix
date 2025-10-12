@@ -1,3 +1,4 @@
+#pragma once
 #include "../common/Net.hpp"
 #include "../common/Message.hpp"
 
@@ -16,7 +17,7 @@ enum class ValueType{
 class ServiceDiscribe{
 public:
     using Ptr = std::shared_ptr<ServiceDiscribe>;
-    using ServiceCallback = std::function<void(const Json::Value&, Json::Value)>;
+    using ServiceCallback = std::function<void(const Json::Value&, Json::Value&)>;
     using ParamsDescribe = std::pair<std::string, ValueType>;
 
     ServiceDiscribe(std::string&& name, std::vector<ParamsDescribe>&& desc, 
@@ -28,13 +29,14 @@ public:
         {}
     bool ParamCheck(const Json::Value& params){
         // 判断所描述的参数类型是否存在，类型是否一致
-        for(auto& desc : _params_desc){
+        for(const auto& desc : _params_desc){
+            LOG_DEBUG("参数: {}, 参数类型: {}", desc.first, (int)desc.second);
             if(params.isMember(desc.first) == false){
                 LOG_ERROR("参数字段完整性校验失败! '{}' 字段缺失", desc.first);
                 return false;
             }
-            if(Check(desc.second, params) == false){
-                LOG_ERROR("参数类型 '{}' 校验失败!", desc.first);
+            if(Check(desc.second, params[desc.first]) == false){
+                LOG_ERROR("参数'{}' 类型校验失败!", desc.first);
                 return false;
             }
         }
@@ -63,6 +65,7 @@ private:
         case ValueType::ARRAY: return val.isArray();
         case ValueType::OBJECT: return val.isObject();
         default:
+            LOG_ERROR("不存在的参数类型");
             return false;
         }
     }
@@ -84,6 +87,9 @@ public:
     void SetReturnType(ValueType type){
         _return_type = type;
     }
+    void SetMethodName(std::string method_name){
+        _method_name = method_name;
+    }
     void SetParamsDesc(const std::string& param_name, ValueType type){
         _params_desc.emplace_back(param_name, type);
     }
@@ -91,7 +97,8 @@ public:
         _callback = cb;
     }
     ServiceDiscribe::Ptr Build(){
-        return std::make_shared<ServiceDiscribe>(_method_name, _params_desc, _return_type, _callback);
+        return std::make_shared<ServiceDiscribe>(std::move(_method_name), std::move(_params_desc), 
+                                                _return_type, std::move(_callback));
     }
 private:
     std::string _method_name;

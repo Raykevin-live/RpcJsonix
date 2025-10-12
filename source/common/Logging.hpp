@@ -38,7 +38,7 @@ namespace common {
             default: return "UNKNOWN";
         }
     }
-} // detail
+} // comm
 
 // 核心日志函数，使用C++20格式化和编译期条件判断
 template <LogLevel Level, typename... Args>
@@ -50,11 +50,13 @@ constexpr void Log(std::string_view format, const std::string& file,
         std::string time_str = common::GetCurrentTimeString();
         // const std::source_location loc = std::source_location::current();
         // 使用C++20的std::format进行类型安全的格式化
+        auto levelStr = common::LogLevelToString(Level);
         std::string log_message = fmt::format(
-            "[{}] [{}:{}] {}\n",
+            "[{}] [{}:{}] [{}] {}\n",
             time_str,
             file,
             line,
+            levelStr,
             fmt::vformat(format, fmt::make_format_args(args...))
         );
         

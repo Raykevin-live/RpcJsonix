@@ -162,7 +162,7 @@ public:
     using Ptr = std::shared_ptr<TopicResponse>;
 };
 
-typedef std::pair<std::string, int> Address;
+typedef std::pair<std::string, int16_t> Address;
 class ServiceRequest : public JsonRequest
 {
 public:

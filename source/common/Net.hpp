@@ -174,7 +174,7 @@ private:
     {
        if(connect->connected())
         {
-            std::cout<<"连接建立!"<<std::endl;
+            LOG_INFO("连接建立!");
             auto muduo_conn = ConnectionFactory::Create(_protocol, connect);
             {
                 std::unique_lock<std::mutex> lock(_mutex);
@@ -184,7 +184,7 @@ private:
         }
         else
         {
-            std::cout<<"连接断开!"<<std::endl;
+            LOG_INFO("连接断开!");
             BaseConnection::Ptr muduo_conn;
             {
                 std::unique_lock<std::mutex> lock(_mutex);
@@ -294,13 +294,13 @@ private:
     {
        if(connect->connected())
         {
-            std::cout<<"连接建立!"<<std::endl;
+            LOG_INFO("连接建立!");
             _downlatch.countDown(); //计数--，为0时唤醒阻塞
             _conn = ConnectionFactory::Create(_protocol, connect);
         }
         else
         {
-            std::cout<<"连接断开!"<<std::endl;
+            LOG_INFO("连接断开!");
             _conn.reset();
         }
     }

@@ -32,6 +32,7 @@ class Uuid{
             if(i == 4 || i == 6) ss << "-";
             ss << std::setw(2) << std::setfill('0') << std::hex << ((cur >> (i*8)) & 0xFF);
         }
+        return ss.str();
     }
 };
 

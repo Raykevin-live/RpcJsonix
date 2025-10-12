@@ -77,8 +77,9 @@ enum class TopicOperType{
 enum class ServiceOperType{
     SERVICE_REGISRY, ///< 服务注册
     SERVICE_DISCOVERY, ///< 服务发现
-    SERVIVE_ONLINE, ///< 服务上线
-    SERVICE_OFFLINE ///< 服务下线
+    SERVICE_ONLINE, ///< 服务上线
+    SERVICE_OFFLINE, ///< 服务下线
+    SERVICE_UNKNOW, 
 };
 
 } // namespace base
