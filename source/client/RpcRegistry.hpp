@@ -9,6 +9,9 @@ namespace client{
 class Provider{
 public:
     using Ptr = std::shared_ptr<Provider>;
+    Provider():_requestor(std::make_shared<Requestor>()){}
+    //这里增加一个直接通过已有requestor构造的接口
+    Provider(const std::shared_ptr<Requestor> &requestor): _requestor(requestor) {}
     bool RegistryMethod(const BaseConnection::Ptr& conn, const std::string& method, const Address& host){
         auto msg_req = MessageFactory::Create<ServiceRequest>();
         msg_req->SetId(Uuid::GetUuid());
@@ -31,6 +34,7 @@ public:
             LOG_ERROR("服务注册失败, 原因: {}", GetErrorReason(service_rsp->Rcode()));
             return false;
         }
+        LOG_INFO("服务注册成功: {}", method);
         return true;
     }
 private:
@@ -90,13 +94,15 @@ public:
             }   
         }
         // 当前服务提供者为空
-        LOG_INFO("当前服务提供者为空，添加提供者");
+        LOG_INFO("当前本地服务提供者为空，准备请求注册中心进行服务发现");
         auto msg_req = MessageFactory::Create<ServiceRequest>();
         msg_req->SetId(Uuid::GetUuid());
         msg_req->SetMessType(MessType::REQUEST_SERVICE);
         msg_req->SetMethod(method);
-        msg_req->SetHostMeassage(host);
-        msg_req->SetServiceOperType(ServiceOperType::SERVICE_REGISRY);
+        // msg_req->SetHostMeassage(host);  
+        // 注意此处的请求类型为服务发现
+        // msg_req->SetServiceOperType(ServiceOperType::SERVICE_REGISRY); 
+        msg_req->SetServiceOperType(ServiceOperType::SERVICE_DISCOVERY); 
         BaseMessage::Ptr msg_rsp;
         auto ret = _requestor->Send(conn, msg_req, msg_rsp);
         if(ret == false){
@@ -108,7 +114,7 @@ public:
             LOG_ERROR("服务发现失败!响应类型转换失败");
             return false;
         }
-        if(service_rsp->Rcode() == ResCode::RCODE_OK){
+        if(service_rsp->Rcode() != ResCode::RCODE_OK){
             LOG_ERROR("服务发现失败！原因: {}", GetErrorReason(service_rsp->Rcode()));
             return false;
         }
@@ -116,9 +122,10 @@ public:
         std::unique_lock<std::mutex> lock(_mutex);
         auto method_hosts = std::make_shared<MethodHost>(service_rsp->Hosts());
         if(method_hosts->Empty()){
-            LOG_ERROR("服务发现失败!没有提供该服务的主机");
+            LOG_ERROR("{}服务发现失败!没有提供该服务的主机", method);
             return false;
         }
+        LOG_INFO("从注册中心找到服务提供者： {}", method);
         _method_hosts[method] = method_hosts;
 
         host = method_hosts->ChooseHost();

@@ -14,7 +14,7 @@ enum class LogLevel {
 };
 
 // 编译期可配置的默认日志级别
-constexpr LogLevel DEFAULT_LOG_LEVEL = LogLevel::DEBUG;
+constexpr LogLevel DEFAULT_LOG_LEVEL = LogLevel::INFO;
 
 namespace common {
     // 获取当前时间的格式化字符串

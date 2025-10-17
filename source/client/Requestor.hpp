@@ -29,7 +29,7 @@ public:
 public:
     void OnResponse(const BaseConnection::Ptr& conn, BaseMessage::Ptr& msg){
         std::string rid = msg->Rid();
-        RequestDescribe::Ptr rdp = GetDescribe(rid);
+        RequestDescribe::Ptr rdp = __GetDescribe(rid);
         if(rdp.get() == nullptr){
             LOG_ERROR("收到响应 '{}', 但是未找到对应的请求描述", rid);
             return;
@@ -43,13 +43,13 @@ public:
         else{
             LOG_ERROR("请求类型未知");
         }
-        DelDescribe(rid); // 避免内存泄漏
+        __DelDescribe(rid); // 避免内存泄漏
     }
     /**
      * @brief: 两种响应方式
      */
     bool Send(const BaseConnection::Ptr& conn, const BaseMessage::Ptr& req, AsyncResponse &async_rsq){
-        RequestDescribe::Ptr rdp = NewDescribe(req, RequestType::REQUEST_ASYNC);
+        RequestDescribe::Ptr rdp = __NewDescribe(req, RequestType::REQUEST_ASYNC);
         if(rdp.get() == nullptr){
             LOG_ERROR("构造请求描述对象失败");
             return false;
@@ -67,7 +67,7 @@ public:
     }
 
     bool Send(const BaseConnection::Ptr& conn, const BaseMessage::Ptr& req, RequestCallback &callback){
-        RequestDescribe::Ptr rdp = NewDescribe(req, RequestType::REQUEST_CALLBACK, callback);
+        RequestDescribe::Ptr rdp = __NewDescribe(req, RequestType::REQUEST_CALLBACK, callback);
         if(rdp.get() == nullptr){
             LOG_ERROR("构造请求描述对象失败");
             return false;
@@ -80,7 +80,7 @@ private:
     /**
      * @brief: request请求信息管理模块- 增删改查
      */
-    RequestDescribe::Ptr NewDescribe(const BaseMessage::Ptr& req, RequestType rtype,
+    RequestDescribe::Ptr __NewDescribe(const BaseMessage::Ptr& req, RequestType rtype,
                                     const RequestCallback &cb = RequestCallback()){
         std::unique_lock<std::mutex> lock(_mutex);
         RequestDescribe::Ptr rd = std::make_shared<RequestDescribe>();
@@ -89,10 +89,12 @@ private:
         if(rtype == RequestType::REQUEST_CALLBACK && cb){
             rd->SetCallback(cb);
         }
+        LOG_INFO("新增请求描述信息: {}", req->Rid());
         _request_desc.emplace(req->Rid(), rd);
         return rd;
     }
-    RequestDescribe::Ptr GetDescribe(const std::string& rid){
+    RequestDescribe::Ptr __GetDescribe(const std::string& rid){
+        LOG_INFO("查找请求描述信息: {}", rid);
         std::unique_lock<std::mutex> lock(_mutex);
         auto it = _request_desc.find(rid);
         if(it == _request_desc.end()){
@@ -100,7 +102,7 @@ private:
         }
         return it->second;
     }
-    void DelDescribe(const std::string& rid){
+    void __DelDescribe(const std::string& rid){
         std::unique_lock<std::mutex> lock(_mutex);
         _request_desc.erase(rid);
     }

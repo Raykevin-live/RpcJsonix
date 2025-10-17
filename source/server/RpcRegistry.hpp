@@ -46,6 +46,7 @@ public:
         // 注意：method方法所提供的主机要多出一个，新增_providers数据
             auto& providers = _providers[method];
             providers.insert(provider);
+            LOG_INFO("当前有 {} 服务上线，添加管理准备通知相关服务发现客户端", method);
         }
         // 向服务对象中新增一个所能提供的服务名称
         provider->AppendMethod(method);
@@ -169,7 +170,7 @@ private:
         }
         auto msg_req = MessageFactory::Create<ServiceRequest>();
         msg_req->SetId(Uuid::GetUuid());
-        msg_req->SetMessType(MessType::REQUEST_SERVICE);
+        msg_req->SetMessType(MessType::REQUEST_SERVICE);//
         msg_req->SetMethod(method);
         msg_req->SetHostMeassage(host);
         msg_req->SetServiceOperType(type);
@@ -205,14 +206,17 @@ public:
     void OnServiceRequest(const BaseConnection::Ptr& conn, const ServiceRequest::Ptr& msg){
         
         auto otype = msg->ServiceOperType();
+        LOG_INFO("收到RPC服务操作请求: {}", (int) otype); 
         if(otype == ServiceOperType::SERVICE_REGISRY){
-            // 服务注册
+            // 服务注册 
+            LOG_INFO("{}:{} 注册服务 {}", msg->HostMeassage().first, msg->HostMeassage().second, msg->Method());
             _providers->AddProvider(conn, msg->HostMeassage(), msg->Method());
             _discoverers->OnlineNotity(msg->Method(), msg->HostMeassage());
             __RegistryResponse(conn, msg);
         }
         else if(otype == ServiceOperType::SERVICE_DISCOVERY){
             // 服务发现
+            LOG_INFO("客户端进行 {} 服务发现", msg->Method());
             _discoverers->AddDiscoverer(conn, msg->Method());
             __DiscoveryResponse(conn, msg);
         }
@@ -224,6 +228,7 @@ public:
     void OnConnShutdown(const BaseConnection::Ptr& conn){
         auto provider = _providers->GetProvider(conn);
         if(provider.get() != nullptr){
+            LOG_INFO("{}:{} 服务下线", provider->host.first, provider->host.second);
             // 如果断开的连接就是提供者, 将提供的方法注销掉
             for(auto& method : provider->methods){
                 _discoverers->OfflineNotity(method, provider->host);

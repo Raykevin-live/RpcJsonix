@@ -2,6 +2,7 @@
 #include "RpcRouter.hpp"
 #include "RpcRegistry.hpp"
 #include "../client/RpcClient.hpp"
+#include "RpcTopic.hpp"
 
 using namespace base;
 namespace server{
@@ -87,5 +88,38 @@ private:
     Dispatcher::Ptr _dispatcher;
     BaseServer::Ptr _server;
     client::RegistryClient::Ptr _client_registry;
+};
+
+class TopicServer{
+public:
+    using Ptr = std::shared_ptr<TopicServer>;
+    TopicServer(int16_t port)
+        :_topic_manager(std::make_shared<TopicManager>())
+        ,_dispatcher(std::make_shared<Dispatcher>())
+        {
+             auto topic_cb = std::bind(&TopicManager::OnTopicRequest, _topic_manager.get(), 
+                        std::placeholders::_1, std::placeholders::_2);
+            _dispatcher->RegisterHandler<TopicRequest>(MessType::REQUEST_TOPIC, topic_cb); //注册映射关系
+            
+            _server = base::ServerFactory::Create(port);
+
+            auto message_callback = std::bind(&Dispatcher::OnMessage, _dispatcher.get(),
+                                    std::placeholders::_1, std::placeholders::_2);
+            _server->SetMessageCallBack(message_callback);
+
+            auto close_callback = std::bind(&TopicServer::__OnConnShutDown, this, std::placeholders::_1);
+            _server->SetCloseCallBack(close_callback);
+        }
+        void Start(){
+            _server->Start();
+        }
+private:
+    void __OnConnShutDown(const BaseConnection::Ptr& conn){
+        _topic_manager->OnShutDown(conn);
+    }
+private:
+    TopicManager::Ptr _topic_manager;
+    Dispatcher::Ptr _dispatcher;
+    BaseServer::Ptr _server;
 };
 }

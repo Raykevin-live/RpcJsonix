@@ -2,6 +2,7 @@
 #include "Requestor.hpp"
 #include "RpcCaller.hpp"
 #include "RpcRegistry.hpp"
+#include "RpcTopic.hpp"
 
 /**
  * @brief 本文件主要进行客户端实现，对客户端部分模块进行集成
@@ -15,7 +16,7 @@ public:
     // 构造函数传入注册中心的地址信息，用于连接注册中心
     RegistryClient(const std::string& ip, int16_t port)
         :_requestor(std::make_shared<Requestor>())
-        ,_provider(std::make_shared<Provider>())
+        ,_provider(std::make_shared<Provider>(_requestor)) //这里通过已有requestor构造provider，进行管理
         ,_dispatcher(std::make_shared<Dispatcher>())
         {
             auto rsp_cb = std::bind(&Requestor::OnResponse, _requestor.get(), 
@@ -34,7 +35,7 @@ public:
     }
 private:
     Requestor::Ptr _requestor;
-    Provider::Ptr _provider;
+    Provider::Ptr _provider; 
     Dispatcher::Ptr _dispatcher;
     BaseClient::Ptr _client;
 };
@@ -47,6 +48,7 @@ public:
     :_requestor(std::make_shared<Requestor>())
     ,_discoverer(std::make_shared<Discoverer>(_requestor, callback))
     ,_dispatcher(std::make_shared<Dispatcher>()){
+        LOG_INFO("构造发现客户端...");
         auto rsp_cb = std::bind(&Requestor::OnResponse, _requestor.get(), 
                     std::placeholders::_1, std::placeholders::_2);
         _dispatcher->RegisterHandler<BaseMessage>(MessType::RESPONSE_SERVICE, rsp_cb);
@@ -157,7 +159,6 @@ private:
         BaseClient::Ptr client;
         if(_enable_discovery){
             Address host;
-            // 1. 通过服务发现，获取服务提供者的地址
             bool ret = _discovery_client->ServiceDiscovery(method, host);
             if(ret == false){
                 LOG_ERROR("当前 {} 服务，没有找到服务提供者！", method);
@@ -217,6 +218,48 @@ private:
     std::mutex _mutex;
     // hash<host, client>
     std::unordered_map<Address, BaseClient::Ptr, AddressHash> _rpc_clients; ///< 用于启用服务发现后的连接池
+};
+class TopicClient{
+public:
+    TopicClient(const std::string &ip, int16_t port)
+        :_requestor(std::make_shared<Requestor>())
+        ,_dispatcher(std::make_shared<Dispatcher>())
+        ,_topic_manager(std::make_shared<TopicManager>(_requestor)) {
+            auto rsp_cb = std::bind(&Requestor::OnResponse, _requestor.get(), 
+                                    std::placeholders::_1, std::placeholders::_2);
+            _dispatcher->RegisterHandler<BaseMessage>(MessType::RESPONSE_TOPIC, rsp_cb);
+            auto msg_cb = std::bind(&TopicManager::OnPublish, _topic_manager.get(), 
+                                    std::placeholders::_1, std::placeholders::_2);
+            _dispatcher->RegisterHandler<TopicRequest>(MessType::REQUEST_TOPIC, msg_cb);
 
+            auto message_cb = std::bind(&Dispatcher::OnMessage, _dispatcher.get(), 
+                                        std::placeholders::_1, std::placeholders::_2);
+            _rpc_client = ClientFactory::Create(ip, port);
+            _rpc_client->SetMessageCallBack(message_cb);
+            _rpc_client->Connect();
+        }
+    bool Create(const std::string& key){
+        return _topic_manager->Create(_rpc_client->GetConnection(), key);
+    }
+    bool Remove(const std::string& key){
+        return _topic_manager->Remove(_rpc_client->GetConnection(), key);
+    }
+    bool Subscribe(const std::string& key, const TopicManager::SubCallback& cb){
+       return _topic_manager->Subscribe(_rpc_client->GetConnection(), key, cb);
+    }
+    bool Cancel(const std::string& key){
+        return _topic_manager->Cancel(_rpc_client->GetConnection(), key);
+    }
+    bool Publish(const std::string& key, const std::string& msg){
+        return _topic_manager->Publish(_rpc_client->GetConnection(), key, msg);
+    }
+    void ShutDown(){
+        _rpc_client->Shutdown();
+    }
+private:
+    Requestor::Ptr _requestor;
+    TopicManager::Ptr _topic_manager;
+    Dispatcher::Ptr _dispatcher;
+    BaseClient::Ptr _rpc_client; //用于未启用服务发现的客户端
 };
 }

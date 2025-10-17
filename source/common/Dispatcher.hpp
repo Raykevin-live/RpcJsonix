@@ -35,6 +35,7 @@ public:
     void OnMessage(const BaseConnection::Ptr& conn, BaseMessage::Ptr& msg){
         // 收到消息类型对应的业务处理函数
         std::unique_lock<std::mutex> lock(_mutex);
+        
         auto it = _handlers.find(msg->GetMessType());
         if(it!=_handlers.end()){
             return it->second->OnMessage(conn, msg);
